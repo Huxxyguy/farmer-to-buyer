@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: farmer_marketplace_db
+    restart: always
+    environment:
+      POSTGRES_USER: farmer_user
+      POSTGRES_PASSWORD: farmer_password_2026
+      POSTGRES_DB: farmer_marketplace
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: farmer_marketplace_api
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      DATABASE_URL: "postgresql://farmer_user:farmer_password_2026@postgres:5432/farmer_marketplace?schema=public"
+      JWT_SECRET: "super-secret-key-farmer-marketplace-2026"
+      PAYSTACK_SECRET_KEY: "sk_test_paystack_secret_key"
+    depends_on:
+      - postgres
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: farmer_marketplace_web
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_BASE: "http://localhost:5000/api/v1"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
