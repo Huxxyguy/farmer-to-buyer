@@ -16,6 +16,7 @@ import paymentRoutes from './routes/payments.js';
 import adminRoutes from './routes/admin.js';
 import disputeRoutes from './routes/disputes.js';
 import reviewRoutes from './routes/reviews.js';
+import { startAutoReleaseCron } from './services/cron.js';
 
 import { requireAuth, requireRole } from './middleware/auth.js';
 
@@ -69,6 +70,9 @@ await fastify.register(reviewRoutes, { prefix: '/api/v1' });
 fastify.get('/api/v1/health', async (request, reply) => {
   return { status: 'ok', timestamp: new Date().toISOString() };
 });
+
+// Start FR-5.4 Auto-Release Cron Service
+startAutoReleaseCron(prisma);
 
 const start = async () => {
   try {

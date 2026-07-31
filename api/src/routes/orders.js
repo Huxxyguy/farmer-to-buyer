@@ -27,7 +27,7 @@ export default async function orderRoutes(fastify, options) {
     }
   };
 
-  // 1. POST /api/v1/orders (Place Order & Snapshot Pricing)
+  // 1. POST /api/v1/orders (Place Order & Snapshot Pricing - READ-ONLY stock check, NO DECREMENT)
   fastify.post('/', {
     preHandler: [fastify.authenticate, fastify.requireRole(['buyer'])],
     schema: createOrderSchema
@@ -38,7 +38,7 @@ export default async function orderRoutes(fastify, options) {
     let totalAmount = 0;
     const orderItemDataList = [];
 
-    // Transactional processing to validate stock & snapshot prices
+    // Read-only validation of stock & price snapshot (Fix A2: No stock decrement at checkout creation)
     for (const item of items) {
       const product = await prisma.product.findUnique({
         where: { id: item.product_id },
@@ -57,25 +57,20 @@ export default async function orderRoutes(fastify, options) {
         return reply.status(400).send({
           statusCode: 400,
           error: 'Bad Request',
-          message: `Insufficient stock for product ${product.name}. Available: ${product.quantity_available}`
+          message: `Insufficient stock for product ${product.name}. Requested: ${item.quantity}, Available: ${product.quantity_available}`
         });
       }
 
       const lineTotal = product.price * item.quantity;
       totalAmount += lineTotal;
 
-      // Price Snapshot
+      // Historical Price Snapshot
       orderItemDataList.push({
         product_id: product.id,
         quantity: item.quantity,
         price_at_purchase: product.price
       });
-
-      // Decrement stock
-      await prisma.product.update({
-        where: { id: product.id },
-        data: { quantity_available: product.quantity_available - item.quantity }
-      });
+      // Fix A2: Stock is NOT decremented here. It will be decremented upon payment confirmation in webhook.
     }
 
     // Create Order & OrderItems
@@ -139,7 +134,6 @@ export default async function orderRoutes(fastify, options) {
       reference
     });
 
-    // Create or update pending Payment record
     await prisma.payment.upsert({
       where: { order_id: order.id },
       create: {
@@ -161,7 +155,7 @@ export default async function orderRoutes(fastify, options) {
     });
   });
 
-  // 3. GET /api/v1/orders/my-orders (Buyer or Farmer Orders List)
+  // 3. GET /api/v1/orders/my-orders
   fastify.get('/my-orders', {
     preHandler: [fastify.authenticate]
   }, async (request, reply) => {
@@ -180,7 +174,6 @@ export default async function orderRoutes(fastify, options) {
         orderBy: { created_at: 'desc' }
       });
     } else if (userRole === 'farmer') {
-      // Find orders containing products from farmer's farm
       const farm = await prisma.farm.findFirst({ where: { user_id: userId } });
       if (farm) {
         orders = await prisma.order.findMany({
@@ -204,7 +197,7 @@ export default async function orderRoutes(fastify, options) {
     return reply.send({ statusCode: 200, count: orders.length, orders });
   });
 
-  // 4. GET /api/v1/orders/:id (Order Details View)
+  // 4. GET /api/v1/orders/:id
   fastify.get('/:id', {
     preHandler: [fastify.authenticate]
   }, async (request, reply) => {
@@ -230,7 +223,7 @@ export default async function orderRoutes(fastify, options) {
     return reply.send({ statusCode: 200, order });
   });
 
-  // 5. PATCH /api/v1/orders/:id/fulfill (Farmer Marks Dispatched)
+  // 5. PATCH /api/v1/orders/:id/fulfill
   fastify.patch('/:id/fulfill', {
     preHandler: [fastify.authenticate, fastify.requireRole(['farmer'])]
   }, async (request, reply) => {
@@ -260,7 +253,7 @@ export default async function orderRoutes(fastify, options) {
     });
   });
 
-  // 6. POST /api/v1/orders/:id/confirm (Buyer Single-Click Escrow Release)
+  // 6. POST /api/v1/orders/:id/confirm
   fastify.post('/:id/confirm', {
     preHandler: [fastify.authenticate, fastify.requireRole(['buyer'])]
   }, async (request, reply) => {
@@ -298,7 +291,6 @@ export default async function orderRoutes(fastify, options) {
       });
     }
 
-    // Identify target farm from first order item
     const farmId = order.orderItems[0]?.product?.farm_id;
     if (!farmId) {
       return reply.status(500).send({
@@ -308,7 +300,6 @@ export default async function orderRoutes(fastify, options) {
       });
     }
 
-    // 1. Update Order & Payment Escrow status
     const completedOrder = await prisma.order.update({
       where: { id },
       data: { status: 'completed' }
@@ -324,13 +315,11 @@ export default async function orderRoutes(fastify, options) {
       });
     }
 
-    // 2. Credit Farmer Balance
     const updatedFarm = await prisma.farm.update({
       where: { id: farmId },
       data: { balance: { increment: order.total_amount } }
     });
 
-    // 3. Log Transaction Ledger Entry
     await prisma.transaction.create({
       data: {
         farm_id: farmId,
