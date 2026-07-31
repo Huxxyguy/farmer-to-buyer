@@ -1,0 +1,145 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  phone         String
+  password_hash String
+  role          String    // "farmer", "buyer", "admin"
+  verified      Boolean   @default(false)
+  created_at    DateTime  @default(now())
+
+  farms         Farm[]    @relation("UserFarms")
+  verifiedFarms Farm[]    @relation("AdminVerifiedFarms")
+  orders        Order[]   @relation("BuyerOrders")
+  reviewsGiven  Review[]  @relation("ReviewerReviews")
+  reviewsRecv   Review[]  @relation("RevieweeReviews")
+  disputesRaised Dispute[] @relation("RaisedDisputes")
+  disputesResolved Dispute[] @relation("ResolvedDisputes")
+}
+
+model Farm {
+  id                  String   @id @default(uuid())
+  user_id             String
+  farm_name           String
+  state               String
+  city                String
+  address             String
+  balance             Float    @default(0.0)
+  verification_status String   @default("pending") // "pending", "verified", "rejected"
+  verified_by         String?
+  verified_at         DateTime?
+
+  user         User          @relation("UserFarms", fields: [user_id], references: [id], onDelete: Cascade)
+  adminUser    User?         @relation("AdminVerifiedFarms", fields: [verified_by], references: [id])
+  products     Product[]
+  transactions Transaction[]
+}
+
+model Product {
+  id                 String   @id @default(uuid())
+  farm_id            String
+  name               String
+  category           String
+  price              Float
+  unit               String
+  quantity_available Int
+  photo_url          String?
+  is_active          Boolean  @default(true)
+
+  farm       Farm        @relation(fields: [farm_id], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+}
+
+model Order {
+  id               String    @id @default(uuid())
+  buyer_id         String
+  status           String    @default("pending") // "pending", "paid", "fulfilled", "completed", "disputed"
+  total_amount     Float
+  delivery_address String
+  delivery_state   String
+  delivery_city    String
+  fulfilled_at     DateTime?
+  created_at       DateTime  @default(now())
+
+  buyer        User          @relation("BuyerOrders", fields: [buyer_id], references: [id], onDelete: Cascade)
+  orderItems   OrderItem[]
+  payment      Payment?
+  reviews      Review[]
+  disputes     Dispute[]
+  transactions Transaction[]
+}
+
+model OrderItem {
+  id                String @id @default(uuid())
+  order_id          String
+  product_id        String
+  quantity          Int
+  price_at_purchase Float
+
+  order   Order   @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [id])
+}
+
+model Payment {
+  id                 String    @id @default(uuid())
+  order_id           String    @unique
+  amount             Float
+  status             String    @default("held") // "held", "released", "refunded"
+  gateway_reference  String    @unique
+  escrow_released_at DateTime?
+  created_at         DateTime  @default(now())
+
+  order Order @relation(fields: [order_id], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  farm_id     String
+  order_id    String?
+  amount      Float
+  type        String   // "credit", "debit", "withdrawal"
+  description String
+  created_at  DateTime @default(now())
+
+  farm  Farm   @relation(fields: [farm_id], references: [id], onDelete: Cascade)
+  order Order? @relation(fields: [order_id], references: [id])
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  order_id    String
+  reviewer_id String
+  reviewee_id String
+  rating      Int
+  comment     String
+  created_at  DateTime @default(now())
+
+  order    Order @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  reviewer User  @relation("ReviewerReviews", fields: [reviewer_id], references: [id])
+  reviewee User  @relation("RevieweeReviews", fields: [reviewee_id], references: [id])
+
+  @@unique([order_id, reviewer_id])
+}
+
+model Dispute {
+  id          String    @id @default(uuid())
+  order_id    String
+  raised_by   String
+  reason      String
+  status      String    @default("open") // "open", "under_review", "resolved_refund", "resolved_release"
+  resolved_by String?
+  resolved_at DateTime?
+
+  order          Order @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  userRaised     User  @relation("RaisedDisputes", fields: [raised_by], references: [id])
+  userResolved   User? @relation("ResolvedDisputes", fields: [resolved_by], references: [id])
+}
