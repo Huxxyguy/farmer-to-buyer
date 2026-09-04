@@ -1,0 +1,11 @@
+{
+  "name": "farmer-to-buyer-marketplace",
+  "version": "1.0.0",
+  "description": "Web-Based Farmer-to-Buyer Direct Marketplace",
+  "scripts": {
+    "start": "start.bat",
+    "dev:api": "cd api && npm run dev",
+    "dev:web": "cd web && npm run dev",
+    "test": "cd api && npm test"
+  }
+}
