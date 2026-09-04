@@ -31,7 +31,8 @@ export default async function authRoutes(fastify, options) {
 
   // 1. POST /api/v1/auth/register (Rejects role: admin)
   fastify.post('/register', { schema: registerSchema }, async (request, reply) => {
-    const { name, email, phone, password, role } = request.body;
+    const { name, email: rawEmail, phone, password, role } = request.body;
+    const email = rawEmail.toLowerCase().trim();
 
     if (role === 'admin') {
       return reply.status(400).send({
@@ -54,9 +55,9 @@ export default async function authRoutes(fastify, options) {
 
     const user = await prisma.user.create({
       data: {
-        name,
+        name: name.trim(),
         email,
-        phone,
+        phone: phone.trim(),
         password_hash,
         role,
         verified: false
@@ -94,7 +95,8 @@ export default async function authRoutes(fastify, options) {
 
   // 2. POST /api/v1/auth/login
   fastify.post('/login', { schema: loginSchema }, async (request, reply) => {
-    const { email, password } = request.body;
+    const { email: rawEmail, password } = request.body;
+    const email = rawEmail.toLowerCase().trim();
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
@@ -180,7 +182,7 @@ export default async function authRoutes(fastify, options) {
     });
   });
 
-  // Test Route Guards for Sprint 1 DoD
+  // Test Route Guards
   fastify.get('/farmer-only', { preHandler: [fastify.authenticate, fastify.requireRole(['farmer'])] }, async (request, reply) => {
     return reply.send({ message: 'Welcome to the Farmer restricted area!' });
   });

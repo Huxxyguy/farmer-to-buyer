@@ -137,7 +137,7 @@ export default function FarmerDashboard() {
     }
   };
 
-  if (loading || fetchingFarm) {
+  if (loading || fetchingFarm || !user) {
     return <div style={{ textAlign: 'center', padding: '3rem' }}>Loading storefront data...</div>;
   }
 
@@ -148,7 +148,7 @@ export default function FarmerDashboard() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <span className="badge badge-farmer" style={{ marginBottom: '0.5rem' }}>Farmer Portal</span>
-            <h1 style={{ fontSize: '1.8rem' }}>Welcome, {user.name}!</h1>
+            <h1 style={{ fontSize: '1.8rem' }}>Welcome, {user?.name || 'Farmer'}!</h1>
             {farm && (
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
                 Storefront: <strong>{farm.farm_name}</strong> | Location: <strong>{farm.city}, {farm.state}</strong> | Status:{' '}

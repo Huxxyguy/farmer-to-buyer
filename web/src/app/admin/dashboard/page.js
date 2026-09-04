@@ -21,7 +21,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!loading && (!user || user.role !== 'admin')) {
       router.push('/login');
-    } else if (user && token) {
+    } else if (user && token && user.role === 'admin') {
       fetchAdminData();
     }
   }, [user, token, loading, router]);
@@ -110,7 +110,7 @@ export default function AdminDashboard() {
     }
   };
 
-  if (loading || fetching) {
+  if (loading || fetching || !user) {
     return <div style={{ textAlign: 'center', padding: '3rem' }}>Loading Admin Governance Center...</div>;
   }
 
@@ -121,7 +121,7 @@ export default function AdminDashboard() {
         <span className="badge badge-admin" style={{ marginBottom: '0.5rem' }}>Platform Governance</span>
         <h1 style={{ fontSize: '1.8rem' }}>Admin Control Center</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-          Logged in as Administrator: {user.name} ({user.email})
+          Logged in as Administrator: {user?.name || 'Admin'} ({user?.email || ''})
         </p>
       </div>
 
