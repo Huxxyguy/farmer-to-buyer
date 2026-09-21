@@ -7,8 +7,6 @@ import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import path from 'path';
-import { PrismaClient } from '@prisma/client';
-
 import authRoutes from '../src/routes/auth.js';
 import farmRoutes from '../src/routes/farms.js';
 import productRoutes from '../src/routes/products.js';
@@ -17,8 +15,7 @@ import paymentRoutes from '../src/routes/payments.js';
 import { requireAuth, requireRole } from '../src/middleware/auth.js';
 import { processAutoReleaseEscrow } from '../src/services/cron.js';
 import { generatePaystackSignature } from '../src/utils/paystack.js';
-
-const prisma = new PrismaClient();
+import prisma from './testPrisma.js';
 
 async function buildApp() {
   const fastify = Fastify();

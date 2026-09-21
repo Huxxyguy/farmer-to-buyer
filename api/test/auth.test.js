@@ -4,12 +4,10 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import jwt from '@fastify/jwt';
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import authRoutes from '../src/routes/auth.js';
 import { requireAuth, requireRole } from '../src/middleware/auth.js';
-
-const prisma = new PrismaClient();
+import prisma from './testPrisma.js';
 
 async function buildApp() {
   const fastify = Fastify();

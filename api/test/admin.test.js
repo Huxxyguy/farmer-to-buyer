@@ -7,7 +7,6 @@ import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import path from 'path';
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 import authRoutes from '../src/routes/auth.js';
@@ -18,8 +17,7 @@ import paymentRoutes from '../src/routes/payments.js';
 import adminRoutes from '../src/routes/admin.js';
 import disputeRoutes from '../src/routes/disputes.js';
 import { requireAuth, requireRole } from '../src/middleware/auth.js';
-
-const prisma = new PrismaClient();
+import prisma from './testPrisma.js';
 
 async function buildApp() {
   const fastify = Fastify();
