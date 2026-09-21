@@ -9,6 +9,7 @@
     "start": "node src/index.js",
     "db:push": "npx prisma db push",
     "db:seed": "node prisma/seed.js",
+    
     "test": "node --test-concurrency=1 --test test/auth.test.js test/products.test.js test/orders.test.js test/admin.test.js test/reviews.test.js"
   },
   "dependencies": {
