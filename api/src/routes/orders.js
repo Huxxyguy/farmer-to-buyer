@@ -128,11 +128,20 @@ export default async function orderRoutes(fastify, options) {
 
     const reference = `FMB-PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-    const paystackResult = await initializePaystackTransaction({
-      email: order.buyer.email,
-      amount: order.total_amount,
-      reference
-    });
+    let paystackResult;
+    try {
+      paystackResult = await initializePaystackTransaction({
+        email: order.buyer.email,
+        amount: order.total_amount,
+        reference
+      });
+    } catch (err) {
+      return reply.status(400).send({
+        statusCode: 400,
+        error: 'Payment Error',
+        message: err.message
+      });
+    }
 
     await prisma.payment.upsert({
       where: { order_id: order.id },
