@@ -74,30 +74,46 @@ export default async function orderRoutes(fastify, options) {
     }
 
     // Create Order & OrderItems
-    const order = await prisma.order.create({
-      data: {
-        buyer_id: buyerId,
-        status: 'pending',
-        total_amount: totalAmount,
-        delivery_address,
-        delivery_state,
-        delivery_city,
-        orderItems: {
-          create: orderItemDataList
+    try {
+      const order = await prisma.order.create({
+        data: {
+          buyer_id: buyerId,
+          status: 'pending',
+          total_amount: totalAmount,
+          delivery_address,
+          delivery_state,
+          delivery_city,
+          orderItems: {
+            create: orderItemDataList
+          }
+        },
+        include: {
+          orderItems: {
+            include: { product: true }
+          }
         }
-      },
-      include: {
-        orderItems: {
-          include: { product: true }
-        }
-      }
-    });
+      });
 
-    return reply.status(201).send({
-      statusCode: 201,
-      message: 'Order created successfully. Ready for payment.',
-      order
-    });
+      return reply.status(201).send({
+        statusCode: 201,
+        message: 'Order created successfully. Ready for payment.',
+        order
+      });
+    } catch (err) {
+      request.log.error(err);
+      if (err.code === 'P2003') {
+        return reply.status(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: 'Foreign key constraint violated. Please ensure your session is valid and try logging in again.'
+        });
+      }
+      return reply.status(500).send({
+        statusCode: 500,
+        error: 'Internal Server Error',
+        message: 'Failed to create order. Please try again.'
+      });
+    }
   });
 
   // 2. POST /api/v1/orders/:id/pay (Initialize Paystack Checkout)

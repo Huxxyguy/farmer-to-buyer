@@ -8,6 +8,19 @@ export async function requireAuth(request, reply) {
       message: 'Authentication required. Please provide a valid token.',
     });
   }
+
+  // Ensure user still exists in the database
+  const user = await request.server.prisma.user.findUnique({
+    where: { id: request.user.id }
+  });
+
+  if (!user) {
+    return reply.status(401).send({
+      statusCode: 401,
+      error: 'Unauthorized',
+      message: 'User session expired or user no longer exists. Please log in again.'
+    });
+  }
 }
 
 export function requireRole(allowedRoles) {

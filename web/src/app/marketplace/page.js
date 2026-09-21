@@ -8,7 +8,7 @@ import Link from 'next/link';
 const API_BASE = 'http://localhost:5000/api/v1';
 
 export default function MarketplacePage() {
-  const { user, token } = useAuth();
+  const { user, token, logout } = useAuth();
   const router = useRouter();
 
   const [products, setProducts] = useState([]);
@@ -137,7 +137,13 @@ export default function MarketplacePage() {
       });
 
       const orderData = await orderRes.json();
-      if (!orderRes.ok) throw new Error(orderData.message || 'Order creation failed');
+      if (!orderRes.ok) {
+        if (orderRes.status === 401) {
+          logout?.();
+          throw new Error('Your session has expired. Please log in again to place your order.');
+        }
+        throw new Error(orderData.message || 'Order creation failed');
+      }
 
       const createdOrder = orderData.order;
 
@@ -150,7 +156,13 @@ export default function MarketplacePage() {
       });
 
       const payData = await payRes.json();
-      if (!payRes.ok) throw new Error(payData.message || 'Payment initialization failed');
+      if (!payRes.ok) {
+        if (payRes.status === 401) {
+          logout?.();
+          throw new Error('Your session has expired. Please log in again.');
+        }
+        throw new Error(payData.message || 'Payment initialization failed');
+      }
 
       setOrderSuccess(`Order #${createdOrder.id.slice(0, 8)} created! Redirecting to Paystack Checkout...`);
       setCart({});
