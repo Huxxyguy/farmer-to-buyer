@@ -117,7 +117,7 @@ export default function AdminDashboard() {
   return (
     <div style={{ padding: '1rem 0' }}>
       {/* Admin Welcome Header */}
-      <div className="card" style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, rgba(243, 156, 18, 0.15), rgba(30, 41, 59, 0.7))' }}>
+      <div className="card" style={{ marginBottom: '1.5rem', background: '#ffffff', border: '1px solid var(--border-color)' }}>
         <span className="badge badge-admin" style={{ marginBottom: '0.5rem' }}>Platform Governance</span>
         <h1 style={{ fontSize: '1.8rem' }}>Admin Control Center</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
@@ -234,7 +234,7 @@ export default function AdminDashboard() {
                   <span className="badge badge-admin">STATUS: {disp.status.toUpperCase()}</span>
                 </div>
 
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem', padding: '0.75rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem', padding: '0.75rem', background: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
                   Buyer: <strong>{disp.order?.buyer?.name}</strong> ({disp.order?.buyer?.email}) | Total Amount in Escrow: <strong style={{ color: 'var(--accent-green)' }}>₦{disp.order?.payment?.amount?.toLocaleString()}</strong>
                 </div>
 

@@ -140,7 +140,7 @@ export default function OrderDetailPage({ params }) {
       {message && <div className="alert alert-success">{message}</div>}
 
       {/* Escrow Status Banner */}
-      <div className="card" style={{ marginBottom: '1.5rem', background: 'rgba(30, 41, 59, 0.9)', borderLeft: '4px solid var(--accent-amber)' }}>
+      <div className="card" style={{ marginBottom: '1.5rem', background: '#ffffff', border: '1px solid var(--border-color)', borderLeft: '4px solid var(--accent-amber)' }}>
         <h4 style={{ color: 'var(--accent-amber)', marginBottom: '0.4rem' }}>
           🛡️ Platform Escrow Protection
         </h4>
@@ -168,7 +168,7 @@ export default function OrderDetailPage({ params }) {
             </thead>
             <tbody>
               {order.orderItems.map((item) => (
-                <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                   <td style={{ padding: '0.75rem 0' }}>{item.product.name}</td>
                   <td>₦{item.price_at_purchase.toLocaleString()} / {item.product.unit}</td>
                   <td>{item.quantity}</td>

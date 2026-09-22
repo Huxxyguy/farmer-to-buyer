@@ -8,10 +8,10 @@ export default function HomePage() {
 
   return (
     <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-      <h1 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '1rem', background: 'linear-gradient(135deg, #2ecc71, #38bdf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+      <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--text-primary)' }}>
         Farmer to Buyer Direct Marketplace
       </h1>
-      <p style={{ fontSize: '1.2rem', color: 'var(--text-secondary)', maxWidth: '700px', margin: '0 auto 2.5rem' }}>
+      <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', maxWidth: '700px', margin: '0 auto 2.5rem', lineHeight: '1.6' }}>
         Eliminating agricultural middlemen across Nigeria. Connecting verified farmers directly with produce buyers with secure escrow payments.
       </p>
 

@@ -47,7 +47,7 @@ export default function OrdersListPage() {
 
   return (
     <div style={{ padding: '1rem 0' }}>
-      <div className="card" style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9))' }}>
+      <div className="card" style={{ marginBottom: '1.5rem', background: '#ffffff', border: '1px solid var(--border-color)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <span className={`badge badge-${isFarmer ? 'farmer' : 'buyer'}`} style={{ marginBottom: '0.5rem' }}>
@@ -85,7 +85,7 @@ export default function OrdersListPage() {
               </thead>
               <tbody>
                 {orders.map((ord) => (
-                  <tr key={ord.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <tr key={ord.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                     <td style={{ padding: '0.75rem 0', fontWeight: 'bold' }}>#{ord.id.slice(0, 8)}</td>
                     <td>{new Date(ord.created_at).toLocaleDateString()}</td>
                     <td>{isFarmer ? ord.buyer?.name : `${ord.delivery_city}, ${ord.delivery_state}`}</td>

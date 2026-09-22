@@ -144,7 +144,7 @@ export default function FarmerDashboard() {
   return (
     <div style={{ padding: '1rem 0' }}>
       {/* Welcome Header */}
-      <div className="card" style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, rgba(46, 204, 113, 0.15), rgba(30, 41, 59, 0.7))' }}>
+      <div className="card" style={{ marginBottom: '1.5rem', background: '#ffffff', border: '1px solid var(--border-color)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <span className="badge badge-farmer" style={{ marginBottom: '0.5rem' }}>Farmer Portal</span>

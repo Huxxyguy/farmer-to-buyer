@@ -84,7 +84,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+        <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
           <strong>Demo Credentials:</strong>
           <ul style={{ paddingLeft: '1.2rem', marginTop: '0.4rem' }}>
             <li>Farmer: <code>farmer@marketplace.ng</code> / <code>Farmer123!</code></li>

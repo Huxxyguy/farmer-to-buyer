@@ -187,13 +187,13 @@ export default function MarketplacePage() {
           position: 'sticky',
           top: '80px',
           zIndex: 100,
-          background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+          background: '#ffffff',
           padding: '1rem 1.5rem',
-          borderRadius: '12px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-main)',
           border: '1px solid var(--accent-green)',
           display: 'flex',
-          justify: 'space-between',
+          justifyContent: 'space-between',
           alignItems: 'center',
           marginBottom: '1.5rem',
           flexWrap: 'wrap',
@@ -206,7 +206,7 @@ export default function MarketplacePage() {
                 {cartCount} Produce Item(s) in Cart
               </strong>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                Subtotal: <strong style={{ color: '#fff' }}>₦{cartTotal.toLocaleString()}</strong>
+                Subtotal: <strong style={{ color: 'var(--text-primary)' }}>₦{cartTotal.toLocaleString()}</strong>
               </p>
             </div>
           </div>
@@ -299,7 +299,7 @@ export default function MarketplacePage() {
             return (
               <div key={p.id} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ width: '100%', height: '160px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', marginBottom: '1rem', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '100%', height: '160px', background: '#f1f5f9', borderRadius: 'var(--radius-md)', marginBottom: '1rem', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-color)' }}>
                     {p.photo_url ? (
                       <img src={p.photo_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
@@ -333,11 +333,11 @@ export default function MarketplacePage() {
                   </p>
 
                   {cartQuantity > 0 ? (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.4rem', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', background: '#f8fafc', border: '1px solid var(--border-color)', padding: '0.4rem', borderRadius: 'var(--radius-md)' }}>
                       <button onClick={() => removeFromCart(p.id)} className="btn btn-secondary" style={{ padding: '0.3rem 0.8rem' }}>
                         -
                       </button>
-                      <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>
+                      <span style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
                         {cartQuantity} in Cart
                       </span>
                       <button onClick={() => addToCart(p)} className="btn btn-primary" style={{ padding: '0.3rem 0.8rem' }} disabled={cartQuantity >= p.quantity_available}>
@@ -371,11 +371,12 @@ export default function MarketplacePage() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
+          background: 'rgba(15, 23, 42, 0.4)',
+          backdropFilter: 'blur(4px)',
           zIndex: 1000,
           display: 'flex',
           alignItems: 'center',
-          justify: 'center',
+          justifyContent: 'center',
           padding: '1rem'
         }}>
           <div className="card" style={{ maxWidth: '520px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -390,7 +391,7 @@ export default function MarketplacePage() {
             {orderSuccess && <div className="alert alert-success">{orderSuccess}</div>}
 
             {/* Cart Summary List */}
-            <div style={{ marginBottom: '1.5rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px' }}>
+            <div style={{ marginBottom: '1.5rem', background: '#f8fafc', border: '1px solid var(--border-color)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
               <h4 style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>Order Cart Summary</h4>
               {cartItems.map((item) => (
                 <div key={item.product.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
