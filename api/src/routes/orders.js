@@ -309,7 +309,19 @@ export default async function orderRoutes(fastify, options) {
       orders = await prisma.order.findMany({
         where: { buyer_id: userId },
         include: {
-          orderItems: { include: { product: true } },
+          orderItems: {
+            include: {
+              product: {
+                include: {
+                  farm: {
+                    include: {
+                      user: { select: { id: true, name: true, phone: true, email: true } }
+                    }
+                  }
+                }
+              }
+            }
+          },
           payment: true
         },
         orderBy: { created_at: 'desc' }
@@ -326,8 +338,20 @@ export default async function orderRoutes(fastify, options) {
             }
           },
           include: {
-            buyer: { select: { id: true, name: true, phone: true } },
-            orderItems: { include: { product: true } },
+            buyer: { select: { id: true, name: true, phone: true, email: true } },
+            orderItems: {
+              include: {
+                product: {
+                  include: {
+                    farm: {
+                      include: {
+                        user: { select: { id: true, name: true, phone: true, email: true } }
+                      }
+                    }
+                  }
+                }
+              }
+            },
             payment: true
           },
           orderBy: { created_at: 'desc' }
@@ -337,7 +361,19 @@ export default async function orderRoutes(fastify, options) {
       orders = await prisma.order.findMany({
         include: {
           buyer: { select: { id: true, name: true, phone: true, email: true } },
-          orderItems: { include: { product: true } },
+          orderItems: {
+            include: {
+              product: {
+                include: {
+                  farm: {
+                    include: {
+                      user: { select: { id: true, name: true, phone: true, email: true } }
+                    }
+                  }
+                }
+              }
+            }
+          },
           payment: true
         },
         orderBy: { created_at: 'desc' }
@@ -356,7 +392,19 @@ export default async function orderRoutes(fastify, options) {
       where: { id },
       include: {
         buyer: { select: { id: true, name: true, email: true, phone: true } },
-        orderItems: { include: { product: true } },
+        orderItems: {
+          include: {
+            product: {
+              include: {
+                farm: {
+                  include: {
+                    user: { select: { id: true, name: true, phone: true, email: true } }
+                  }
+                }
+              }
+            }
+          }
+        },
         payment: true,
         disputes: true,
         reviews: true

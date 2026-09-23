@@ -107,7 +107,10 @@ export default async function productRoutes(fastify, options) {
             state: true,
             city: true,
             address: true,
-            verification_status: true
+            verification_status: true,
+            user: {
+              select: { id: true, name: true, phone: true }
+            }
           }
         }
       },
@@ -152,7 +155,10 @@ export default async function productRoutes(fastify, options) {
             state: true,
             city: true,
             address: true,
-            verification_status: true
+            verification_status: true,
+            user: {
+              select: { id: true, name: true, phone: true }
+            }
           }
         }
       }

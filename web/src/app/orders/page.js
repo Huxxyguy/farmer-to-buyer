@@ -115,7 +115,27 @@ export default function OrdersListPage() {
                   <tr key={ord.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                     <td style={{ padding: '0.75rem 0', fontWeight: 'bold' }}>#{ord.id.slice(0, 8)}</td>
                     <td>{new Date(ord.created_at).toLocaleDateString()}</td>
-                    <td>{isFarmer ? ord.buyer?.name : `${ord.delivery_city}, ${ord.delivery_state}`}</td>
+                    <td>
+                      {isFarmer ? (
+                        <div>
+                          <strong>{ord.buyer?.name}</strong>
+                          {ord.buyer?.phone && (
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                              📞 <a href={`tel:${ord.buyer.phone}`} style={{ color: 'var(--accent-blue)' }}>{ord.buyer.phone}</a>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <strong>{ord.delivery_city}, {ord.delivery_state}</strong>
+                          {ord.orderItems[0]?.product?.farm?.user?.phone && (
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                              📞 Seller: <a href={`tel:${ord.orderItems[0].product.farm.user.phone}`} style={{ color: 'var(--accent-blue)' }}>{ord.orderItems[0].product.farm.user.phone}</a>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </td>
                     <td style={{ color: 'var(--accent-green)', fontWeight: 'bold' }}>₦{ord.total_amount.toLocaleString()}</td>
                     <td>
                       <span className="badge badge-admin" style={{ fontSize: '0.75rem' }}>

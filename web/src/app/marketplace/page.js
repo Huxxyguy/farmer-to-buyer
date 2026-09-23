@@ -28,9 +28,16 @@ export default function MarketplacePage() {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryState, setDeliveryState] = useState('Kano');
   const [deliveryCity, setDeliveryCity] = useState('Kano');
+  const [buyerPhone, setBuyerPhone] = useState(user?.phone || '');
   const [placingOrder, setPlacingOrder] = useState(false);
   const [orderError, setOrderError] = useState('');
   const [orderSuccess, setOrderSuccess] = useState('');
+
+  useEffect(() => {
+    if (user?.phone && !buyerPhone) {
+      setBuyerPhone(user.phone);
+    }
+  }, [user]);
 
   useEffect(() => {
     fetchProducts();
@@ -315,7 +322,7 @@ export default function MarketplacePage() {
                   </div>
 
                   <h3 style={{ fontSize: '1.2rem', marginBottom: '0.25rem' }}>{p.name}</h3>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
                       Farm: <strong>{p.farm.farm_name}</strong>
                     </p>
@@ -323,6 +330,11 @@ export default function MarketplacePage() {
                       ⭐ {p.farm.average_rating > 0 ? `${p.farm.average_rating} (${p.farm.total_reviews})` : 'New Seller'}
                     </span>
                   </div>
+                  {p.farm.user?.phone && (
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                      📞 Contact Farmer: <a href={`tel:${p.farm.user.phone}`} style={{ color: 'var(--accent-blue)', fontWeight: 'bold' }}>{p.farm.user.phone}</a>
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -424,6 +436,18 @@ export default function MarketplacePage() {
                   placeholder="e.g. No 14 Zoo Road, Kano"
                   value={deliveryAddress}
                   onChange={(e) => setDeliveryAddress(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Buyer Contact Phone Number</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. 08012345678"
+                  value={buyerPhone}
+                  onChange={(e) => setBuyerPhone(e.target.value)}
                   required
                 />
               </div>

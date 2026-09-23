@@ -661,7 +661,14 @@ export default function FarmerDashboard() {
                     {farmerOrders.map((ord) => (
                       <tr key={ord.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                         <td style={{ padding: '0.75rem 0', fontWeight: 'bold' }}>#{ord.id.slice(0, 8)}</td>
-                        <td>{ord.buyer?.name} ({ord.buyer?.phone})</td>
+                        <td>
+                          <strong>{ord.buyer?.name}</strong>
+                          {ord.buyer?.phone && (
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                              📞 <a href={`tel:${ord.buyer.phone}`} style={{ color: 'var(--accent-blue)', fontWeight: 'bold' }}>{ord.buyer.phone}</a>
+                            </div>
+                          )}
+                        </td>
                         <td>
                           {ord.orderItems?.map(i => `${i.product?.name || 'Produce'} (x${i.quantity})`).join(', ')}
                         </td>

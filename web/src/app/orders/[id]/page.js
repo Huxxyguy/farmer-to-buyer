@@ -330,13 +330,41 @@ export default function OrderDetailPage({ params }) {
         </div>
       </div>
 
-      {/* Delivery Shipping Destination */}
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ marginBottom: '0.5rem', fontSize: '1.1rem' }}>Delivery Destination</h3>
-        <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
-          Address: <strong>{order.delivery_address}</strong><br />
-          Location: <strong>{order.delivery_city}, {order.delivery_state} State</strong>
-        </p>
+      {/* Buyer & Seller Contact Information */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div className="card">
+          <h3 style={{ marginBottom: '0.5rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            👤 Buyer Contact & Shipping Info
+          </h3>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', lineHeight: '1.5' }}>
+            Name: <strong style={{ color: 'var(--text-primary)' }}>{order.buyer?.name}</strong><br />
+            Phone: <strong style={{ color: 'var(--text-primary)' }}>{order.buyer?.phone || 'N/A'}</strong><br />
+            Email: <strong>{order.buyer?.email}</strong><br />
+            Destination: <strong>{order.delivery_address}, {order.delivery_city}, {order.delivery_state} State</strong>
+          </p>
+          {order.buyer?.phone && (
+            <a href={`tel:${order.buyer.phone}`} className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', textDecoration: 'none', display: 'inline-flex' }}>
+              📞 Call Buyer ({order.buyer.phone})
+            </a>
+          )}
+        </div>
+
+        <div className="card">
+          <h3 style={{ marginBottom: '0.5rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            🌾 Seller / Farmer Contact Info
+          </h3>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', lineHeight: '1.5' }}>
+            Storefront: <strong style={{ color: 'var(--text-primary)' }}>{order.orderItems[0]?.product?.farm?.farm_name || 'Farm Storefront'}</strong><br />
+            Farmer Owner: <strong style={{ color: 'var(--text-primary)' }}>{order.orderItems[0]?.product?.farm?.user?.name || 'Farmer'}</strong><br />
+            Phone: <strong style={{ color: 'var(--text-primary)' }}>{order.orderItems[0]?.product?.farm?.user?.phone || 'N/A'}</strong><br />
+            Location: <strong>{order.orderItems[0]?.product?.farm?.city}, {order.orderItems[0]?.product?.farm?.state} State</strong>
+          </p>
+          {order.orderItems[0]?.product?.farm?.user?.phone && (
+            <a href={`tel:${order.orderItems[0].product.farm.user.phone}`} className="btn btn-primary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', textDecoration: 'none', display: 'inline-flex' }}>
+              📞 Call Farmer ({order.orderItems[0].product.farm.user.phone})
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Interactive Action Bar */}
