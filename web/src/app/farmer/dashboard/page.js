@@ -49,6 +49,18 @@ export default function FarmerDashboard() {
   const [accountName, setAccountName] = useState('');
   const [withdrawing, setWithdrawing] = useState(false);
 
+  // Incoming Orders Filter state
+  const [orderTab, setOrderTab] = useState('active'); // 'active', 'completed', 'all'
+
+  const activeIncomingOrders = farmerOrders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
+  const completedOrders = farmerOrders.filter(o => o.status === 'completed');
+
+  const displayedOrders = orderTab === 'active'
+    ? activeIncomingOrders
+    : orderTab === 'completed'
+    ? completedOrders
+    : farmerOrders;
+
   const handleWithdrawSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -349,9 +361,9 @@ export default function FarmerDashboard() {
             <div className="card" style={{ padding: '1.25rem' }}>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Incoming Buyer Orders</span>
               <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--accent-amber)', margin: '0.2rem 0' }}>
-                {farmerOrders.length}
+                {activeIncomingOrders.length}
               </p>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Sales Orders Received</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Active Pending Orders</span>
             </div>
 
             <div className="card" style={{ padding: '1.25rem' }}>
@@ -639,11 +651,38 @@ export default function FarmerDashboard() {
 
           {/* Incoming Sales Orders Section */}
           <div className="card" style={{ marginBottom: '2.5rem' }}>
-            <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              📦 Incoming Sales Orders & Dispatch Management <span className="badge badge-farmer">{farmerOrders.length} Orders</span>
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                📦 Incoming Sales Orders & Dispatch Queue
+              </h3>
 
-            {farmerOrders.length > 0 ? (
+              {/* Filter Tabs */}
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setOrderTab('active')}
+                  className={`btn ${orderTab === 'active' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                >
+                  ⚡ Active Pending ({activeIncomingOrders.length})
+                </button>
+                <button
+                  onClick={() => setOrderTab('completed')}
+                  className={`btn ${orderTab === 'completed' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                >
+                  ✅ Completed Payouts ({completedOrders.length})
+                </button>
+                <button
+                  onClick={() => setOrderTab('all')}
+                  className={`btn ${orderTab === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                >
+                  📋 All ({farmerOrders.length})
+                </button>
+              </div>
+            </div>
+
+            {displayedOrders.length > 0 ? (
               <div style={{ width: '100%', overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                   <thead>
@@ -658,7 +697,7 @@ export default function FarmerDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {farmerOrders.map((ord) => (
+                    {displayedOrders.map((ord) => (
                       <tr key={ord.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                         <td style={{ padding: '0.75rem 0', fontWeight: 'bold' }}>#{ord.id.slice(0, 8)}</td>
                         <td>
@@ -704,7 +743,13 @@ export default function FarmerDashboard() {
                 </table>
               </div>
             ) : (
-              <p style={{ color: 'var(--text-secondary)' }}>No buyer orders received for your farm produce yet.</p>
+              <p style={{ color: 'var(--text-secondary)' }}>
+                {orderTab === 'active'
+                  ? 'No active pending buyer orders requiring dispatch right now.'
+                  : orderTab === 'completed'
+                  ? 'No completed payout orders recorded yet.'
+                  : 'No buyer orders received for your farm produce yet.'}
+              </p>
             )}
           </div>
 
