@@ -39,6 +39,33 @@ export default function OrdersListPage() {
     }
   };
 
+  const handlePayMock = async (orderId) => {
+    try {
+      let res = await fetch(`${API_BASE}/orders/${orderId}/pay`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ mock: true })
+      });
+      if (!res.ok) {
+        res = await fetch(`${API_BASE}/orders/${orderId}/pay-mock`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
+      if (res.ok) {
+        fetchMyOrders();
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Payment failed');
+      }
+    } catch (err) {
+      console.error('Error executing mock payment:', err);
+    }
+  };
+
   if (loading || fetching) {
     return <div style={{ textAlign: 'center', padding: '3rem' }}>Loading orders list...</div>;
   }
@@ -100,8 +127,17 @@ export default function OrdersListPage() {
                         {ord.status.toUpperCase()}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <Link href={`/orders/${ord.id}`} className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}>
+                    <td style={{ textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', alignItems: 'center' }}>
+                      {!isFarmer && ord.status === 'pending' && (
+                        <button
+                          onClick={() => handlePayMock(ord.id)}
+                          className="btn btn-primary"
+                          style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', background: 'var(--accent-green)', whiteSpace: 'nowrap' }}
+                        >
+                          ⚡ Instant Pay
+                        </button>
+                      )}
+                      <Link href={`/orders/${ord.id}`} className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
                         View Details →
                       </Link>
                     </td>

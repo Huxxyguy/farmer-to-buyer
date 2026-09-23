@@ -1,6 +1,150 @@
 export default async function adminRoutes(fastify, options) {
   const prisma = fastify.prisma;
 
+  // 0. GET /api/v1/admin/farms (List All Farm Storefronts)
+  fastify.get('/farms', {
+    preHandler: [fastify.authenticate, fastify.requireRole(['admin'])]
+  }, async (request, reply) => {
+    const farms = await prisma.farm.findMany({
+      include: {
+        user: { select: { id: true, name: true, email: true, phone: true } },
+        _count: { select: { products: true } }
+      },
+      orderBy: { farm_name: 'asc' }
+    });
+
+    return reply.send({
+      statusCode: 200,
+      count: farms.length,
+      farms
+    });
+  });
+
+  // 0b. GET /api/v1/admin/orders (List All Platform Orders & Escrow Audit)
+  fastify.get('/orders', {
+    preHandler: [fastify.authenticate, fastify.requireRole(['admin'])]
+  }, async (request, reply) => {
+    const orders = await prisma.order.findMany({
+      include: {
+        buyer: { select: { id: true, name: true, email: true, phone: true } },
+        payment: true,
+        orderItems: {
+          include: {
+            product: {
+              include: { farm: { select: { farm_name: true } } }
+            }
+          }
+        },
+        disputes: true
+      },
+      orderBy: { created_at: 'desc' }
+    });
+
+    return reply.send({
+      statusCode: 200,
+      count: orders.length,
+      orders
+    });
+  });
+
+  // 0c. PATCH /api/v1/admin/orders/:id/status (Admin Override Order Status)
+  fastify.patch('/orders/:id/status', {
+    preHandler: [fastify.authenticate, fastify.requireRole(['admin'])]
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const { status } = request.body; // "pending" | "paid" | "fulfilled" | "completed" | "disputed"
+
+    const validStatuses = ['pending', 'paid', 'fulfilled', 'completed', 'disputed'];
+    if (!validStatuses.includes(status)) {
+      return reply.status(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: `Status must be one of: ${validStatuses.join(', ')}`
+      });
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: {
+        payment: true,
+        orderItems: { include: { product: true } }
+      }
+    });
+
+    if (!order) {
+      return reply.status(404).send({
+        statusCode: 404,
+        error: 'Not Found',
+        message: 'Order not found.'
+      });
+    }
+
+    const farmId = order.orderItems[0]?.product?.farm_id;
+
+    if (status === 'paid') {
+      await prisma.payment.upsert({
+        where: { order_id: order.id },
+        create: {
+          order_id: order.id,
+          amount: order.total_amount,
+          status: 'held',
+          gateway_reference: `ADMIN-OVERRIDE-${Date.now()}`
+        },
+        update: { status: 'held' }
+      });
+
+      if (order.status === 'pending' && order.orderItems) {
+        for (const item of order.orderItems) {
+          await prisma.product.update({
+            where: { id: item.product_id },
+            data: { quantity_available: { decrement: item.quantity } }
+          });
+        }
+      }
+    } else if (status === 'completed') {
+      if (order.payment) {
+        await prisma.payment.update({
+          where: { id: order.payment.id },
+          data: { status: 'released', escrow_released_at: new Date() }
+        });
+      }
+      if (farmId) {
+        await prisma.farm.update({
+          where: { id: farmId },
+          data: { balance: { increment: order.total_amount } }
+        });
+        await prisma.transaction.create({
+          data: {
+            farm_id: farmId,
+            order_id: order.id,
+            amount: order.total_amount,
+            type: 'credit',
+            description: `Admin manual order completion & payout for Order #${order.id.slice(0, 8)}`
+          }
+        });
+      }
+    }
+
+    const updatedOrder = await prisma.order.update({
+      where: { id },
+      data: {
+        status,
+        ...(status === 'fulfilled' ? { fulfilled_at: new Date() } : {})
+      },
+      include: {
+        buyer: { select: { id: true, name: true, email: true, phone: true } },
+        payment: true,
+        orderItems: { include: { product: true } }
+      }
+    });
+
+    return reply.send({
+      statusCode: 200,
+      message: `Order status updated to ${status.toUpperCase()} by Administrator.`,
+      order: updatedOrder
+    });
+  });
+
   // 1. GET /api/v1/admin/farms/pending (List Pending Farm Verification Queue)
   fastify.get('/farms/pending', {
     preHandler: [fastify.authenticate, fastify.requireRole(['admin'])]

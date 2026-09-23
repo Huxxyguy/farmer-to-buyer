@@ -18,6 +18,9 @@ export default function AdminDashboard() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  const [allFarms, setAllFarms] = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
+
   useEffect(() => {
     if (!loading && (!user || user.role !== 'admin')) {
       router.push('/login');
@@ -29,6 +32,29 @@ export default function AdminDashboard() {
   const fetchAdminData = async () => {
     setFetching(true);
     try {
+      // 0. Fetch All Farms Directory
+      const allFarmRes = await fetch(`${API_BASE}/admin/farms`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (allFarmRes.ok) {
+        const data = await allFarmRes.json();
+        setAllFarms(data.farms || []);
+      }
+
+      // 0b. Fetch All Orders & Escrow Audit Directory
+      let allOrdRes = await fetch(`${API_BASE}/admin/orders`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!allOrdRes.ok) {
+        allOrdRes = await fetch(`${API_BASE}/orders/my-orders`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
+      if (allOrdRes.ok) {
+        const data = await allOrdRes.json();
+        setAllOrders(data.orders || []);
+      }
+
       // 1. Fetch Analytics
       const analRes = await fetch(`${API_BASE}/admin/analytics`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -110,6 +136,53 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleAdminUpdateStatus = async (orderId, newStatus) => {
+    setActionLoading(true);
+    setError('');
+    setMessage('');
+    try {
+      let res;
+      if (newStatus === 'paid') {
+        res = await fetch(`${API_BASE}/orders/${orderId}/pay`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mock: true })
+        });
+      } else if (newStatus === 'fulfilled') {
+        res = await fetch(`${API_BASE}/orders/${orderId}/fulfill`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      } else if (newStatus === 'completed') {
+        res = await fetch(`${API_BASE}/orders/${orderId}/confirm`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      } else if (newStatus === 'disputed') {
+        res = await fetch(`${API_BASE}/orders/${orderId}/dispute`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: 'Admin status override to disputed' })
+        });
+      } else {
+        res = await fetch(`${API_BASE}/admin/orders/${orderId}/status`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        });
+      }
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Status update failed');
+      setMessage(`Order status updated to ${newStatus.toUpperCase()} successfully!`);
+      fetchAdminData();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading || fetching || !user) {
     return <div style={{ textAlign: 'center', padding: '3rem' }}>Loading Admin Governance Center...</div>;
   }
@@ -168,10 +241,137 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* All Farm Storefronts Directory & Status Manager */}
+      <div className="card" style={{ marginBottom: '2.5rem' }}>
+        <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          🚜 All Platform Farm Storefronts Directory <span className="badge badge-admin">{allFarms.length} Total Farms</span>
+        </h3>
+
+        {allFarms.length > 0 ? (
+          <div style={{ width: '100%', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                  <th style={{ padding: '0.75rem 0' }}>Farm Name</th>
+                  <th>Owner</th>
+                  <th>Location</th>
+                  <th>Listings</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Verification Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allFarms.map((farm) => (
+                  <tr key={farm.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '0.75rem 0', fontWeight: 'bold' }}>{farm.farm_name}</td>
+                    <td>{farm.user?.name} ({farm.user?.phone})</td>
+                    <td>{farm.city}, {farm.state}</td>
+                    <td>{farm._count?.products || 0} Products</td>
+                    <td>
+                      <span className={`badge badge-${farm.verification_status === 'verified' ? 'farmer' : 'admin'}`}>
+                        {farm.verification_status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {farm.verification_status !== 'verified' ? (
+                        <button
+                          onClick={() => handleVerifyFarm(farm.id, 'verified')}
+                          className="btn btn-primary"
+                          style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}
+                          disabled={actionLoading}
+                        >
+                          Approve
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleVerifyFarm(farm.id, 'rejected')}
+                          className="btn btn-danger"
+                          style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}
+                          disabled={actionLoading}
+                        >
+                          Revoke / Reject
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p style={{ color: 'var(--text-secondary)' }}>No registered farm storefronts found.</p>
+        )}
+      </div>
+
+      {/* All Marketplace Orders & Escrow Audit Table */}
+      <div className="card" style={{ marginBottom: '2.5rem' }}>
+        <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          📦 All Marketplace Orders & Escrow Audit Table <span className="badge badge-admin">{allOrders.length} Total Orders</span>
+        </h3>
+
+        {allOrders.length > 0 ? (
+          <div style={{ width: '100%', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                  <th style={{ padding: '0.75rem 0' }}>Order ID</th>
+                  <th>Buyer Name</th>
+                  <th>Delivery Location</th>
+                  <th>Total Amount</th>
+                  <th>Escrow State</th>
+                  <th>Order Status</th>
+                  <th style={{ textAlign: 'right' }}>Inspection</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allOrders.map((ord) => (
+                  <tr key={ord.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '0.75rem 0', fontWeight: 'bold' }}>#{ord.id.slice(0, 8)}</td>
+                    <td>{ord.buyer?.name} ({ord.buyer?.phone || ord.buyer?.email})</td>
+                    <td>{ord.delivery_city}, {ord.delivery_state}</td>
+                    <td style={{ color: 'var(--accent-green)', fontWeight: 'bold' }}>₦{ord.total_amount.toLocaleString()}</td>
+                    <td>
+                      <span className="badge badge-admin" style={{ fontSize: '0.75rem' }}>
+                        {ord.payment ? ord.payment.status.toUpperCase() : 'UNPAID'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`badge badge-${ord.status === 'completed' ? 'farmer' : 'buyer'}`}>
+                        {ord.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', alignItems: 'center' }}>
+                      <select
+                        value={ord.status}
+                        onChange={(e) => handleAdminUpdateStatus(ord.id, e.target.value)}
+                        className="btn btn-secondary"
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', background: '#ffffff', cursor: 'pointer' }}
+                        disabled={actionLoading}
+                      >
+                        <option value="pending">PENDING</option>
+                        <option value="paid">PAID</option>
+                        <option value="fulfilled">FULFILLED</option>
+                        <option value="completed">COMPLETED</option>
+                        <option value="disputed">DISPUTED</option>
+                      </select>
+                      <a href={`/orders/${ord.id}`} className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>
+                        Audit Details →
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p style={{ color: 'var(--text-secondary)' }}>No orders placed on the marketplace yet.</p>
+        )}
+      </div>
+
       {/* Farm Verification Queue Section */}
       <div style={{ marginBottom: '2.5rem' }}>
         <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          🌾 Farm Verification Queue <span className="badge badge-admin">{pendingFarms.length} Pending</span>
+          🌾 Pending Farm Verification Queue <span className="badge badge-admin">{pendingFarms.length} Pending</span>
         </h3>
 
         {pendingFarms.length > 0 ? (

@@ -13,6 +13,10 @@ export default function Navbar() {
     router.push('/login');
   };
 
+  const handleBack = () => {
+    router.back();
+  };
+
   const getDashboardLink = () => {
     if (!user) return '/login';
     if (user.role === 'farmer') return '/farmer/dashboard';
@@ -23,10 +27,20 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
-      <Link href="/" className="brand">
-        <div className="brand-icon">🌱</div>
-        <span>FarmDirect NG</span>
-      </Link>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <button
+          onClick={handleBack}
+          className="btn btn-secondary"
+          style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}
+          title="Go back to previous page"
+        >
+          ← Back
+        </button>
+        <Link href="/" className="brand">
+          <div className="brand-icon">🌱</div>
+          <span>FarmDirect NG</span>
+        </Link>
+      </div>
 
       <div className="nav-links">
         <Link href="/marketplace" className="btn btn-secondary">

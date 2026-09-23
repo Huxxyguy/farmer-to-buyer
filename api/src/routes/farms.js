@@ -62,7 +62,11 @@ export default async function farmRoutes(fastify, options) {
       where: { user_id: request.user.id },
       include: {
         products: {
-          orderBy: { name: 'asc' }
+          orderBy: { name: 'asc' },
+        },
+        transactions: {
+          orderBy: { created_at: 'desc' },
+          take: 10
         }
       }
     });
@@ -75,9 +79,97 @@ export default async function farmRoutes(fastify, options) {
       });
     }
 
+    const reviews = await prisma.review.findMany({
+      where: { reviewee_id: farm.user_id },
+      include: {
+        reviewer: { select: { id: true, name: true } }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+
+    const avgResult = await prisma.review.aggregate({
+      where: { reviewee_id: farm.user_id },
+      _avg: { rating: true },
+      _count: { rating: true }
+    });
+
+    const average_rating = avgResult._avg.rating ? Number(avgResult._avg.rating.toFixed(1)) : 0;
+    const total_reviews = avgResult._count.rating || 0;
+
     return reply.send({
       statusCode: 200,
-      farm
+      farm: {
+        ...farm,
+        average_rating,
+        total_reviews,
+        reviews
+      }
+    });
+  });
+
+  // 2b. POST /api/v1/farms/withdraw (Farmer Bank Payout Withdrawal)
+  fastify.post('/withdraw', {
+    preHandler: [fastify.authenticate, fastify.requireRole(['farmer'])]
+  }, async (request, reply) => {
+    const { amount, bank_name, account_number, account_name } = request.body || {};
+
+    const withdrawAmount = Number(amount);
+    if (!withdrawAmount || withdrawAmount <= 0) {
+      return reply.status(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'Please specify a valid positive withdrawal amount.'
+      });
+    }
+
+    if (!bank_name || !account_number || !account_name) {
+      return reply.status(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'Bank name, 10-digit account number, and account name are required.'
+      });
+    }
+
+    const farm = await prisma.farm.findFirst({
+      where: { user_id: request.user.id }
+    });
+
+    if (!farm) {
+      return reply.status(404).send({
+        statusCode: 404,
+        error: 'Not Found',
+        message: 'Farm profile not found.'
+      });
+    }
+
+    if (farm.balance < withdrawAmount) {
+      return reply.status(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: `Insufficient balance. Available balance: ₦${farm.balance.toLocaleString()}, Requested: ₦${withdrawAmount.toLocaleString()}`
+      });
+    }
+
+    // Process Withdrawal: Decrement balance and create ledger transaction
+    const updatedFarm = await prisma.farm.update({
+      where: { id: farm.id },
+      data: { balance: { decrement: withdrawAmount } }
+    });
+
+    const transaction = await prisma.transaction.create({
+      data: {
+        farm_id: farm.id,
+        amount: withdrawAmount,
+        type: 'withdrawal',
+        description: `Bank Withdrawal Payout to ${bank_name} - Acc: ${account_number} (${account_name})`
+      }
+    });
+
+    return reply.send({
+      statusCode: 200,
+      message: `Successfully processed withdrawal payout of ₦${withdrawAmount.toLocaleString()} to ${bank_name}!`,
+      new_balance: updatedFarm.balance,
+      transaction
     });
   });
 

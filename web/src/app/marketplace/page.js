@@ -315,9 +315,14 @@ export default function MarketplacePage() {
                   </div>
 
                   <h3 style={{ fontSize: '1.2rem', marginBottom: '0.25rem' }}>{p.name}</h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-                    Farm: <strong>{p.farm.farm_name}</strong>
-                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      Farm: <strong>{p.farm.farm_name}</strong>
+                    </p>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--accent-amber)', fontWeight: 'bold' }}>
+                      ⭐ {p.farm.average_rating > 0 ? `${p.farm.average_rating} (${p.farm.total_reviews})` : 'New Seller'}
+                    </span>
+                  </div>
                 </div>
 
                 <div>

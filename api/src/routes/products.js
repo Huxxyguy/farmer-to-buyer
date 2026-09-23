@@ -102,6 +102,7 @@ export default async function productRoutes(fastify, options) {
         farm: {
           select: {
             id: true,
+            user_id: true,
             farm_name: true,
             state: true,
             city: true,
@@ -113,10 +114,26 @@ export default async function productRoutes(fastify, options) {
       orderBy: { name: 'asc' }
     });
 
+    const productsWithRatings = await Promise.all(products.map(async (p) => {
+      const avgResult = await prisma.review.aggregate({
+        where: { reviewee_id: p.farm.user_id },
+        _avg: { rating: true },
+        _count: { rating: true }
+      });
+      return {
+        ...p,
+        farm: {
+          ...p.farm,
+          average_rating: avgResult._avg.rating ? Number(avgResult._avg.rating.toFixed(1)) : 0,
+          total_reviews: avgResult._count.rating || 0
+        }
+      };
+    }));
+
     return reply.send({
       statusCode: 200,
-      count: products.length,
-      products
+      count: productsWithRatings.length,
+      products: productsWithRatings
     });
   });
 
@@ -130,6 +147,7 @@ export default async function productRoutes(fastify, options) {
         farm: {
           select: {
             id: true,
+            user_id: true,
             farm_name: true,
             state: true,
             city: true,
@@ -148,7 +166,26 @@ export default async function productRoutes(fastify, options) {
       });
     }
 
-    return reply.send({ statusCode: 200, product });
+    const avgResult = await prisma.review.aggregate({
+      where: { reviewee_id: product.farm.user_id },
+      _avg: { rating: true },
+      _count: { rating: true }
+    });
+
+    const average_rating = avgResult._avg.rating ? Number(avgResult._avg.rating.toFixed(1)) : 0;
+    const total_reviews = avgResult._count.rating || 0;
+
+    return reply.send({
+      statusCode: 200,
+      product: {
+        ...product,
+        farm: {
+          ...product.farm,
+          average_rating,
+          total_reviews
+        }
+      }
+    });
   });
 
   // 4. PATCH /api/v1/products/:id (Farmer Edit Listing)

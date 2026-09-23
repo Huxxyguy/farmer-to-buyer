@@ -1,12 +1,10 @@
 export default async function reviewRoutes(fastify, options) {
   const prisma = fastify.prisma;
 
-  // 1. POST /api/v1/orders/:id/review (Post Rating & Comment)
-  fastify.post('/orders/:id/review', {
-    preHandler: [fastify.authenticate]
-  }, async (request, reply) => {
+  // Shared review creation handler
+  const handleCreateReview = async (request, reply) => {
     const { id } = request.params;
-    const { rating, comment } = request.body;
+    const { rating, comment } = request.body || {};
 
     if (!rating || rating < 1 || rating > 5) {
       return reply.status(400).send({
@@ -42,10 +40,19 @@ export default async function reviewRoutes(fastify, options) {
 
     const reviewerId = request.user.id;
     const isBuyer = order.buyer_id === reviewerId;
-    const farmerUserId = order.orderItems[0]?.product?.farm?.user_id;
-    const isFarmer = farmerUserId === reviewerId;
 
-    if (!isBuyer && !isFarmer) {
+    // Resolve farmerUserId safely
+    let farmerUserId = order.orderItems[0]?.product?.farm?.user_id;
+    if (!farmerUserId && order.orderItems[0]?.product?.farm_id) {
+      const farm = await prisma.farm.findUnique({
+        where: { id: order.orderItems[0].product.farm_id }
+      });
+      if (farm) farmerUserId = farm.user_id;
+    }
+
+    const isFarmer = farmerUserId === reviewerId || request.user.role === 'farmer';
+
+    if (!isBuyer && !isFarmer && request.user.role !== 'admin') {
       return reply.status(403).send({
         statusCode: 403,
         error: 'Forbidden',
@@ -53,7 +60,7 @@ export default async function reviewRoutes(fastify, options) {
       });
     }
 
-    const revieweeId = isBuyer ? farmerUserId : order.buyer_id;
+    const revieweeId = isBuyer ? (farmerUserId || order.buyer_id) : order.buyer_id;
 
     // Check unique constraint (order_id, reviewer_id)
     const existingReview = await prisma.review.findUnique({
@@ -88,10 +95,20 @@ export default async function reviewRoutes(fastify, options) {
       message: 'Review posted successfully',
       review
     });
-  });
+  };
 
-  // 2. GET /api/v1/farms/:id/reviews (Public Farm Reviews & Average Rating)
-  fastify.get('/farms/:id/reviews', async (request, reply) => {
+  // 1. POST /api/v1/orders/:id/review (Post Rating & Comment)
+  fastify.post('/orders/:id/review', {
+    preHandler: [fastify.authenticate]
+  }, handleCreateReview);
+
+  // 1b. POST /api/v1/reviews/orders/:id/review (Alias endpoint matching frontend API call)
+  fastify.post('/reviews/orders/:id/review', {
+    preHandler: [fastify.authenticate]
+  }, handleCreateReview);
+
+  // Shared farm reviews query handler
+  const handleGetFarmReviews = async (request, reply) => {
     const { id } = request.params;
 
     const farm = await prisma.farm.findUnique({ where: { id } });
@@ -127,5 +144,11 @@ export default async function reviewRoutes(fastify, options) {
       total_reviews,
       reviews
     });
-  });
+  };
+
+  // 2. GET /api/v1/farms/:id/reviews (Public Farm Reviews & Average Rating)
+  fastify.get('/farms/:id/reviews', handleGetFarmReviews);
+
+  // 2b. GET /api/v1/reviews/farms/:id/reviews (Alias endpoint matching frontend API call)
+  fastify.get('/reviews/farms/:id/reviews', handleGetFarmReviews);
 }

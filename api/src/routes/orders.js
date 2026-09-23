@@ -121,9 +121,11 @@ export default async function orderRoutes(fastify, options) {
     preHandler: [fastify.authenticate, fastify.requireRole(['buyer'])]
   }, async (request, reply) => {
     const { id } = request.params;
+    const { mock } = request.body || request.query || {};
+
     const order = await prisma.order.findUnique({
       where: { id },
-      include: { buyer: true }
+      include: { buyer: true, orderItems: true }
     });
 
     if (!order) {
@@ -139,6 +141,51 @@ export default async function orderRoutes(fastify, options) {
         statusCode: 403,
         error: 'Forbidden',
         message: 'You are not authorized to pay for this order.'
+      });
+    }
+
+    // Instant Mock Payment Mode if mock=true or requested
+    if (mock) {
+      const reference = `MOCK-PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+      await prisma.payment.upsert({
+        where: { order_id: order.id },
+        create: {
+          order_id: order.id,
+          amount: order.total_amount,
+          status: 'held',
+          gateway_reference: reference
+        },
+        update: {
+          gateway_reference: reference,
+          amount: order.total_amount,
+          status: 'held'
+        }
+      });
+
+      const updatedOrder = await prisma.order.update({
+        where: { id: order.id },
+        data: { status: 'paid' }
+      });
+
+      if (order.orderItems) {
+        for (const item of order.orderItems) {
+          await prisma.product.update({
+            where: { id: item.product_id },
+            data: {
+              quantity_available: {
+                decrement: item.quantity
+              }
+            }
+          });
+        }
+      }
+
+      return reply.send({
+        statusCode: 200,
+        message: 'Simulated payment successful! Order marked as paid and escrow held.',
+        reference,
+        order: updatedOrder
       });
     }
 
@@ -180,6 +227,75 @@ export default async function orderRoutes(fastify, options) {
     });
   });
 
+  // 2b. POST /api/v1/orders/:id/pay-mock (Simulate Instant Payment Confirmation)
+  fastify.post('/:id/pay-mock', {
+    preHandler: [fastify.authenticate, fastify.requireRole(['buyer'])]
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: { buyer: true, orderItems: true }
+    });
+
+    if (!order) {
+      return reply.status(404).send({
+        statusCode: 404,
+        error: 'Not Found',
+        message: 'Order not found.'
+      });
+    }
+
+    if (order.buyer_id !== request.user.id) {
+      return reply.status(403).send({
+        statusCode: 403,
+        error: 'Forbidden',
+        message: 'You are not authorized to pay for this order.'
+      });
+    }
+
+    const reference = `MOCK-PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+    await prisma.payment.upsert({
+      where: { order_id: order.id },
+      create: {
+        order_id: order.id,
+        amount: order.total_amount,
+        status: 'held',
+        gateway_reference: reference
+      },
+      update: {
+        gateway_reference: reference,
+        amount: order.total_amount,
+        status: 'held'
+      }
+    });
+
+    const updatedOrder = await prisma.order.update({
+      where: { id: order.id },
+      data: { status: 'paid' }
+    });
+
+    if (order.orderItems) {
+      for (const item of order.orderItems) {
+        await prisma.product.update({
+          where: { id: item.product_id },
+          data: {
+            quantity_available: {
+              decrement: item.quantity
+            }
+          }
+        });
+      }
+    }
+
+    return reply.send({
+      statusCode: 200,
+      message: 'Simulated payment successful! Order marked as paid and escrow held.',
+      reference,
+      order: updatedOrder
+    });
+  });
+
   // 3. GET /api/v1/orders/my-orders
   fastify.get('/my-orders', {
     preHandler: [fastify.authenticate]
@@ -217,6 +333,15 @@ export default async function orderRoutes(fastify, options) {
           orderBy: { created_at: 'desc' }
         });
       }
+    } else if (userRole === 'admin') {
+      orders = await prisma.order.findMany({
+        include: {
+          buyer: { select: { id: true, name: true, phone: true, email: true } },
+          orderItems: { include: { product: true } },
+          payment: true
+        },
+        orderBy: { created_at: 'desc' }
+      });
     }
 
     return reply.send({ statusCode: 200, count: orders.length, orders });
@@ -233,7 +358,8 @@ export default async function orderRoutes(fastify, options) {
         buyer: { select: { id: true, name: true, email: true, phone: true } },
         orderItems: { include: { product: true } },
         payment: true,
-        disputes: true
+        disputes: true,
+        reviews: true
       }
     });
 
@@ -250,7 +376,7 @@ export default async function orderRoutes(fastify, options) {
 
   // 5. PATCH /api/v1/orders/:id/fulfill
   fastify.patch('/:id/fulfill', {
-    preHandler: [fastify.authenticate, fastify.requireRole(['farmer'])]
+    preHandler: [fastify.authenticate, fastify.requireRole(['farmer', 'admin'])]
   }, async (request, reply) => {
     const { id } = request.params;
 
@@ -280,7 +406,7 @@ export default async function orderRoutes(fastify, options) {
 
   // 6. POST /api/v1/orders/:id/confirm
   fastify.post('/:id/confirm', {
-    preHandler: [fastify.authenticate, fastify.requireRole(['buyer'])]
+    preHandler: [fastify.authenticate, fastify.requireRole(['buyer', 'admin'])]
   }, async (request, reply) => {
     const { id } = request.params;
 
@@ -300,7 +426,7 @@ export default async function orderRoutes(fastify, options) {
       });
     }
 
-    if (order.buyer_id !== request.user.id) {
+    if (order.buyer_id !== request.user.id && request.user.role !== 'admin') {
       return reply.status(403).send({
         statusCode: 403,
         error: 'Forbidden',
